@@ -15,7 +15,7 @@ library(tidyverse)
 library(raster)
 ```
 
-```{r boston-download}
+```{r berkeley-download}
 url_boundary <- "https://data.cityofberkeley.info/api/geospatial/6is2-y2ia?method=export&format=Shapefile"
 url_streets <- "https://data.cityofberkeley.info/api/geospatial/hqnk-qfhq?method=export&format=Shapefile"
 url_zones <- "https://data.cityofberkeley.info/api/geospatial/2dtu-vge3?method=export&format=Shapefile"
@@ -36,7 +36,6 @@ df_boundary <- sf::read_sf("../data", "geo_export_b1a00a47-bdd5-4682-a683-5029c3
 df_streets <- sf::read_sf("../data", "geo_export_2e435363-acc8-45bb-af5e-40d26d5fcafe")
 df_zones <- sf::read_sf("../data", "geo_export_7d564c47-0c9f-4f15-9270-63ff2cac12c0")
 # df_water <- sf::read_sf("../data", "Hydrography_Polygon")
-
 ```
 
 ## Wrangling data
@@ -147,3 +146,9 @@ ggplot() +
     caption = "Berkeley"
   )
 ```
+
+```{r save-to-disk}
+# ggsave("map.png", width = 297, height = 420, units = "mm", dpi = "retina")
+ggsave("../images/berkeley.svg")
+```
+
