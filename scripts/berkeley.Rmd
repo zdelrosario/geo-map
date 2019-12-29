@@ -1,0 +1,149 @@
+---
+title: "Berkeley Map"
+author: "Zachary del Rosario"
+date: 2019-12-28
+output: github_document
+---
+
+Berkeley CA map, following [this tutorial](https://taraskaduk.com/2019/12/20/print-maps/).
+
+## Setup & Download
+
+```{r setup}
+library(sf)
+library(tidyverse)
+library(raster)
+```
+
+```{r boston-download}
+url_boundary <- "https://data.cityofberkeley.info/api/geospatial/6is2-y2ia?method=export&format=Shapefile"
+url_streets <- "https://data.cityofberkeley.info/api/geospatial/hqnk-qfhq?method=export&format=Shapefile"
+url_zones <- "https://data.cityofberkeley.info/api/geospatial/2dtu-vge3?method=export&format=Shapefile"
+
+curl::curl_download(url_boundary, destfile = "../data/berkeley_boundary.shp.zip")
+curl::curl_download(url_streets, destfile = "../data/berkeley_streets.shp.zip")
+curl::curl_download(url_zones, destfile = "../data/berkeley_zones.shp.zip")
+# curl::curl_download(url_water, destfile = "../data/boston_water.shp.zip")
+
+unzip("../data/berkeley_boundary.shp.zip", exdir = "../data")
+unzip("../data/berkeley_streets.shp.zip", exdir = "../data")
+unzip("../data/berkeley_zones.shp.zip", exdir = "../data")
+# unzip("../data/boston_water.shp.zip", exdir = "../data")
+```
+
+```{r load-shapefiles}
+df_boundary <- sf::read_sf("../data", "geo_export_b1a00a47-bdd5-4682-a683-5029c32ebbc2")
+df_streets <- sf::read_sf("../data", "geo_export_2e435363-acc8-45bb-af5e-40d26d5fcafe")
+df_zones <- sf::read_sf("../data", "geo_export_7d564c47-0c9f-4f15-9270-63ff2cac12c0")
+# df_water <- sf::read_sf("../data", "Hydrography_Polygon")
+
+```
+
+## Wrangling data
+
+### Streets
+
+To assign appropriate visual weight to the various streets, here we explore the levels of `category` in the street data.
+
+```{r}
+df_streets %>% count(category)
+
+df_streets_filled <- 
+  df_streets %>% 
+  mutate(category = if_else(is.na(category), "MINOR", category))
+
+```
+
+Let's assign different weights to different street types:
+
+```{r}
+size_small <- 0.2
+size_mid <- 0.5
+size_large <- 0.7
+
+size_streets <- 
+  c(
+    "MINOR" = size_small,
+    "MAJOR" = size_mid,
+    "PEDESTRIAN" = size_small,
+    "CONNECTOR" = size_small,
+    "Private Road" = size_small,
+    "HIGHWAY" = size_large
+  )
+```
+
+### Zones
+
+Let's see what zones are in the data.
+
+```{r}
+df_zones %>% count(zone)
+```
+
+Assign manual colors to the zones.
+
+```{r}
+fill_zones <- 
+  c(
+    "C" = "darkseagreen3",
+    "C-W" = "darkseagreen3",
+    "R" = "bisque",
+    
+    "X" = NA,
+    "U" = NA,
+    "SP" = NA,
+    "M" = NA,
+    "MM" = NA,
+    "MULI" = NA,
+    "MUR" = NA
+  )
+```
+
+
+## Visualization
+
+```{r vis}
+## Plot
+ggplot() +
+  geom_sf(
+    data = df_boundary,
+    fill = "grey90",
+    color = "grey20",
+    size = 0.09
+  ) +
+  geom_sf(
+    data = df_zones,
+    aes(fill = zone),
+    size = 0.01
+  ) +
+  geom_sf(
+    data = df_streets_filled,
+    aes(size = category)
+  ) +
+  ## Tail
+  scale_size_manual(values = size_streets) +
+  scale_fill_manual(values = fill_zones) +
+  coord_sf(
+    xlim = c(-122.32, -122.25),
+    ylim = c(+37.855, +37.88)
+  ) +
+  theme_void() +
+  # theme_minimal() +
+  theme(
+    panel.background = element_rect(
+      fill = "#d1e9eb"
+    ),
+
+    legend.position = "none",
+    plot.caption = element_text(
+      color = "grey20",
+      size = 30,
+      hjust = 0.5,
+      face = "plain",
+      family = "Didot"
+    )
+  ) +
+  labs(
+    caption = "Berkeley"
+  )
+```
